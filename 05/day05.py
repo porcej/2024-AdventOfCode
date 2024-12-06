@@ -1,5 +1,5 @@
 import re
-from math import floor
+from collections import defaultdict, deque
 
 def load_pages(file_path):
     """
@@ -45,22 +45,61 @@ def is_correct_order(update, page_order_rules):
                 return False
     return True
 
-def part_one(page_order_rules, updates):
-	middle_number_page_sum = 0
-	for update in updates:
-		if is_correct_order(update, page_order_rules):
-			middle_number_page_sum += update[len(update) // 2]
+def topological_sort(update, page_order_rules):
+    """Sorts the pages according to the given rules using topological sorting."""
+    graph = defaultdict(list)
+    indegree = defaultdict(int)
 
-	return middle_number_page_sum
+    # Build the graph and indegree map
+    for x, y in page_order_rules:
+        if x in update and y in update:
+            graph[x].append(y)
+            indegree[y] += 1
+            if x not in indegree:
+                indegree[x] = 0
+
+    # Initialize the queue with nodes that have no incoming edges
+    queue = deque([node for node in update if indegree[node] == 0])
+    sorted_pages = []
+
+    # Perform topological sort
+    while queue:
+        current = queue.popleft()
+        sorted_pages.append(current)
+        for neighbor in graph[current]:
+            indegree[neighbor] -= 1
+            if indegree[neighbor] == 0:
+                queue.append(neighbor)
+
+    return sorted_pages
+
+
+
+def part_one(page_order_rules, updates):
+	middle_page_sums = {
+		'correct': 0,
+		'incorrect': 0
+	}
+	for update in updates:
+
+		# Part 1
+		if is_correct_order(update, page_order_rules):
+			middle_page_sums['correct'] += update[len(update) // 2]
+
+		# Part 2
+		else:
+			updated_update = topological_sort(update, page_order_rules)
+			middle_page_sums['incorrect'] += updated_update[len(updated_update) // 2]
+
+	return middle_page_sums
 
 
 if __name__ == "__main__":
     
-    file_path = "example.txt"
+    # file_path = "example.txt"
     file_path = "input.txt"
 
     page_order_rules, updates = load_pages(file_path)
 
-    middle_page_sum_sorted = part_one(page_order_rules, updates)
-
-    print(f'If you add up the middle page number from the correctly-ordered updates you will get {middle_page_sum_sorted}.')
+    middle_page_sum = part_one(page_order_rules, updates)
+    print(f'Middle Page Sums:\n\tCorrectly-ordered: {middle_page_sum['correct']}\n\tIncorrectly-ordered: {middle_page_sum['incorrect']}')
