@@ -41,6 +41,8 @@ def perform_calulation(operands, operators):
             accumulator *= int(operands[odx + 1])
         elif op == '+':
             accumulator += int(operands[odx + 1])
+        elif op == '||':
+            accumulator = int(f'{accumulator}{operands[odx + 1]}')
     return accumulator
 
 
@@ -89,6 +91,13 @@ def part_one(calibration_data):
             accumulator += result
     return accumulator
 
+def part_two(calibration_data):
+    accumulator = 0
+    for result, values in calibration_data.items():
+        if check_if_possible(result, values, ["+", "*", "||"]):
+            accumulator += result
+    return accumulator
+
 if __name__ == "__main__":
     file_path = "example.txt"
     file_path = "input.txt"
@@ -96,6 +105,8 @@ if __name__ == "__main__":
     calibration_data = load_calibrations(file_path)
     sum_valid_calibrations = part_one(calibration_data)
     print(f'The total calibration result is {sum_valid_calibrations}.')
+    sum_valid_calibrations = part_two(calibration_data)
+    print(f'The total calibration result with || is {sum_valid_calibrations}')
 
 
 
