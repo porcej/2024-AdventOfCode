@@ -13,9 +13,7 @@ def load_map_grid(file_path):
     try:
         with open(file_path, 'r') as file:
             for line in file:
-                line = line.strip()
-                row = list(line)
-                grid.append(row)
+                grid.append(list(line.strip()))
         return grid
 
     except FileNotFoundError:
@@ -35,51 +33,66 @@ def find_object(map_grid, objs):
 
     for rdx, map_row in enumerate(map_grid):
         for cdx, position in enumerate(map_row):
-            # print(map_grid[rdx][cdx])
             if position in objs:
                 return (rdx, cdx)
     return None # No guard found
 
 
-def part_one(map_grid):
+def patrol(map_grid, obstructions=['#']):
     # Find Guard who is represented by '^'
-    num_steps = 1   # We start at one since the starting position counts
     guard = '^'
     guards = ['^', '>', 'V', '<']
-    obstructions = ['#']
-    distinct_positions = {}
+    guard_move_vectors = {'^': (-1, 0), '>': (0, 1), 'V': (1, 0), '<': (0, -1)}
+    guard_move_history = []
+    distinct_positions = set()
     guard_position = find_object(map_grid, objs=[guard])
     if guard_position is not None:
         guard_row, guard_col = guard_position 
     # distinct_positions[f'{guard_row},{guard_col}'] = True
     while ((0 < guard_row < len(map_grid) - 1) and (0 < guard_col < len(map_grid[0]) -1)):
-        distinct_positions[f'{guard_row},{guard_col}'] = True
-        if guard == '^':
-            next_step_row = guard_row - 1
-            if map_grid[guard_row - 1][guard_col] in obstructions:
-                guard = '>'
-            else:
-                guard_row = guard_row - 1
-        elif guard == 'V':
-            if map_grid[guard_row + 1][guard_col] in obstructions:
-                guard = '<'
-            else:
-                guard_row = guard_row + 1
-        elif guard == '<':
-            next_step_row = guard_col - 1
-            if map_grid[guard_row][guard_col - 1] in obstructions:
-                guard = '^'
-            else:
-                guard_col = guard_col - 1
-        elif guard == '>':
-            next_step_row = guard_col + 1
-            if map_grid[guard_row][guard_col + 1] in obstructions:
-                guard = 'V'
-            else:
-                guard_col = guard_col + 1
-    distinct_positions[f'{guard_row},{guard_col}'] = True
+        distinct_positions.add((guard_row, guard_col))
 
+        guard_move_vector = guard_move_vectors[guard]
+        next_row, next_col = guard_row + guard_move_vector[0], guard_col + guard_move_vector[1]
+
+        if map_grid[next_row][next_col] in obstructions:
+            guard = guards[(guards.index(guard) +1) % 4]
+        else:
+            guard_row, guard_col = next_row, next_col
+
+        distinct_positions.add((guard_row, guard_col))
+        current_position = (guard_row, guard_col, guard)
+        if current_position in guard_move_history:
+            return None 
+        else:
+            guard_move_history.append(current_position)
+
+    return distinct_positions
+
+
+def part_one(map_grid, obstructions=['#']):
+    distinct_positions = patrol(map_grid)
     return len(distinct_positions)
+
+
+def part_two(map_grid):
+    # First we narrow the field down by finding the distinct positions that 
+    # The Guard touches because other locations will not have an impact
+    count = 0
+    n_count = 0
+    distinct_positions = patrol(map_grid)
+    for distinct_position in distinct_positions:
+        row, col = distinct_position
+        position_temp = map_grid[row][col]
+        if position_temp in ['^', '>', '<', 'V']:
+            continue
+        map_grid[row][col] = '@'
+        steps = patrol(map_grid, obstructions=['#', '@'])
+        map_grid[row][col] = position_temp
+        if steps is None:
+            count += 1
+    return count
+
 
 
 
@@ -92,9 +105,11 @@ def part_one(map_grid):
 
 if __name__ == "__main__":
     
-    file_path = "example.txt"
+    # file_path = "example.txt"
     file_path = "input.txt"
     map_grid = load_map_grid(file_path)
     num_distinct_positions = part_one(map_grid)
-    print(f'The guard past through {num_distinct_positions} before leaving the area.')
+    print(f'The guard past through {num_distinct_positions} positions before leaving the area.')
+    num_new_obstructions = part_two(map_grid)
+    print(f'You can create a loop for the guard by placing obstructions in {num_new_obstructions} places.')
 
